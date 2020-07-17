@@ -1,5 +1,5 @@
 develop:
-	pip install -r requirements.txt --use-mirrors
+	pip install -r requirements.txt
 
 install:
 	python setup.py install
