@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 
 import time, re, json, sys
 from collections import Counter
@@ -9,9 +9,9 @@ from svtyper.statistics import mean, stdev, median, upper_mad
 # VCF parsing tools
 # ==================================================
 def confidence_interval(var, tag, alt_tag, max_ci_dist):
-    ci = map(int, var.info[tag].split(','))
+    ci = list(map(int, var.info[tag].split(',')))
     if ci[1] - ci[0] > max_ci_dist:
-        return map(int, var.info[alt_tag].split(','))
+        return list(map(int, var.info[alt_tag].split(',')))
     return ci
 
 
@@ -310,7 +310,7 @@ class Variant(object):
     def get_info_string(self):
         i_list = list()
         for info_field in self.info_list:
-            if info_field.id in self.info.keys():
+            if info_field.id in list(self.info.keys()):
                 if info_field.type == 'Flag':
                     i_list.append(info_field.id)
                 else:
@@ -456,7 +456,7 @@ class Library(object):
         lib = lib_info[sample_name]['libraryArray'][lib_index]
 
         # convert the histogram keys to integers (from strings in JSON)
-        lib_hist = {int(k):int(v) for k,v in lib['histogram'].items()}
+        lib_hist = {int(k):int(v) for k,v in list(lib['histogram'].items())}
 
         return cls(lib['library_name'],
                    bam,
@@ -480,7 +480,7 @@ class Library(object):
         for r in bam.header['RG']:
             try:
                 in_lib = r['LB'] == lib_name
-            except KeyError, e:
+            except KeyError as e:
                 in_lib = lib_name == ''
 
             if in_lib:
@@ -520,8 +520,10 @@ class Library(object):
         for read in self.bam.fetch():
             if read.get_tag('RG') not in self.readgroups:
                 continue
-            if read.infer_query_length() > max_rl:
-                max_rl = read.infer_query_length()
+            iql = read.infer_query_length()
+            if iql is not None:
+                if iql > max_rl:
+                    max_rl = iql
             if counter == num_samp:
                 break
             counter += 1
@@ -612,7 +614,7 @@ class Sample(object):
 
         # get active libraries
         self.active_libs = []
-        for lib in lib_dict.values():
+        for lib in list(lib_dict.values()):
             if lib.prevalence >= min_lib_prevalence:
                 self.active_libs.append(lib.name)
 
@@ -629,7 +631,7 @@ class Sample(object):
         lib_dict = {}
 
         try:
-            for i in xrange(len(lib_info[name]['libraryArray'])):
+            for i in range(len(lib_info[name]['libraryArray'])):
                 lib = lib_info[name]['libraryArray'][i]
                 lib_name = lib['library_name']
 
@@ -669,7 +671,7 @@ class Sample(object):
         for r in bam.header['RG']:
             try:
                 lib_name=r['LB']
-            except KeyError, e:
+            except KeyError as e:
                 lib_name=''
 
             # add the new library
@@ -689,7 +691,7 @@ class Sample(object):
 
     # get the maximum fetch flank for reading the BAM file
     def get_fetch_flank(self, z):
-        return max([lib.mean + (lib.sd * z) for lib in self.lib_dict.values()])
+        return max([lib.mean + (lib.sd * z) for lib in list(self.lib_dict.values())])
 
     # return the library object for a specified read group
     def get_lib(self, readgroup):
@@ -698,7 +700,7 @@ class Sample(object):
     # return the expected spanning coverage at any given base
     def set_exp_spanning_depth(self, min_aligned):
         genome_size = float(sum(self.bam.lengths))
-        weighted_mean_span = sum([(lib.mean - 2 * lib.read_length + 2 * min_aligned) * lib.prevalence for lib in self.lib_dict.values()])
+        weighted_mean_span = sum([(lib.mean - 2 * lib.read_length + 2 * min_aligned) * lib.prevalence for lib in list(self.lib_dict.values())])
         exp_spanning_depth = (weighted_mean_span * self.bam_mapped) / genome_size
 
         self.exp_spanning_depth = exp_spanning_depth
@@ -708,7 +710,7 @@ class Sample(object):
     # return the expected sequence coverage at any given base
     def set_exp_seq_depth(self, min_aligned):
         genome_size = float(sum(self.bam.lengths))
-        weighted_mean_read_length = sum([(lib.read_length - 2 * min_aligned) * lib.prevalence for lib in self.lib_dict.values()])
+        weighted_mean_read_length = sum([(lib.read_length - 2 * min_aligned) * lib.prevalence for lib in list(self.lib_dict.values())])
         exp_seq_depth = (weighted_mean_read_length * self.bam_mapped) / genome_size
 
         self.exp_seq_depth = exp_seq_depth
@@ -878,6 +880,7 @@ class SamFragment(object):
             p = float(self.lib.dens[ospan_length]) * conc_prior / (conc_prior * self.lib.dens[ospan_length] + disc_prior * (self.lib.dens[ospan_length - var_length]))
         except ZeroDivisionError:
             p = None
+            return False
 
         return p > 0.5
 
@@ -930,7 +933,7 @@ class SplitRead(object):
                 cigar = cigar[::-1]
 
             # iterate through cigartuple
-            for i in xrange(len(cigar)):
+            for i in range(len(cigar)):
                 k, n = cigar[i]
                 if k in (4,5): # H, S
                     if i == 0:
@@ -1082,7 +1085,7 @@ class SplitRead(object):
         cigar_dict = {'M':0, 'I':1,'D':2,'N':3, 'S':4, 'H':5, 'P':6, '=':7, 'X':8}
         pattern = re.compile('([MIDNSHPX=])')
         values = pattern.split(cigarstring)[:-1] ## turn cigar into tuple of values
-        paired = (values[n:n+2] for n in xrange(0, len(values), 2)) ## pair values by twos
+        paired = (values[n:n+2] for n in range(0, len(values), 2)) ## pair values by twos
         return [(cigar_dict[pair[1]], int(pair[0])) for pair in paired]
 
     @staticmethod
@@ -1094,7 +1097,7 @@ class SplitRead(object):
         reference_end = reference_start
         
         # iterate through cigartuple
-        for i in xrange(len(cigar)):
+        for i in range(len(cigar)):
             k, n = cigar[i]
             if k in (0,2,3,7,8): # M, D, N, =, X
                 reference_end += n

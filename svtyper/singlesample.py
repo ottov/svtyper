@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 import json, sys, os, math, argparse, time
 import multiprocessing as mp
 
@@ -47,14 +47,14 @@ description: Compute genotype of structural variants based on breakpoint depth o
     return args
 
 def ensure_valid_alignment_file(afile):
-    if not (afile.endswith('.bam') or afile.endswith('.cram')):
+    if not (afile.endswith('.bam'.encode('ascii')) or afile.endswith('.cram'.encode('ascii'))):
         die('Error: %s is not a valid alignment file (*.bam or *.cram)\n' % afile)
 
 def open_alignment_file(afile, reference_fasta):
     fd = None
-    if afile.endswith('.bam'):
+    if afile.endswith('.bam'.encode('ascii')):
         fd = pysam.AlignmentFile(afile, mode='rb')
-    elif afile.endswith('.cram'):
+    elif afile.endswith('.cram'.encode('ascii')):
         fd = pysam.AlignmentFile(afile, mode='rc', reference_filename=reference_fasta)
     else:
         die('Error: %s is not a valid alignment file (*.bam or *.cram)\n' % afile)
@@ -417,7 +417,7 @@ def bayesian_genotype(breakpoint, counts, split_weight, disc_weight, debug):
 
     # the actual bayesian calculation and decision
     gt_lplist = bayes_gt(QR, QA, is_dup)
-    best, second_best = sorted([ (i, e) for i, e in enumerate(gt_lplist) ], key=lambda(x): x[1], reverse=True)[0:2]
+    best, second_best = sorted([ (i, e) for i, e in enumerate(gt_lplist) ], key=lambda x: x[1], reverse=True)[0:2]
     gt_idx = best[0]
 
     # print log probabilities of homref, het, homalt
@@ -491,7 +491,7 @@ def serial_calculate_genotype(bam, regions, library_data, active_libs, sample_na
         debug
     )
 
-    total = sum([ counts[k] for k in counts.keys() ])
+    total = sum([ counts[k] for k in list(counts.keys()) ])
     if total == 0:
         return make_detailed_empty_genotype_result(breakpoint['id'], sample_name)
 
@@ -528,7 +528,7 @@ def parallel_calculate_genotype(alignment_file, reference_fasta, library_data, a
             debug
         )
 
-        total = sum([ counts[k] for k in counts.keys() ])
+        total = sum([ counts[k] for k in list(counts.keys()) ])
         if total == 0:
             genotype_results.append(make_detailed_empty_genotype_result(breakpoint['id'], sample_name))
             continue
@@ -782,7 +782,7 @@ def sso_genotype(bam_string,
         return
 
     invcf = os.path.abspath(vcf_in.name)
-    full_bam_path = os.path.abspath(bam_string)
+    full_bam_path = os.path.abspath(bam_string).encode('UTF-8')
     ensure_valid_alignment_file(full_bam_path)
 
     sample = setup_sample(full_bam_path, lib_info_path, ref_fasta, num_samp, min_aligned)
@@ -846,7 +846,7 @@ def main():
 def cli():
     try:
         sys.exit(main())
-    except IOError, e:
+    except IOError as e:
         if e.errno != 32:  # ignore SIGPIPE
             raise
 

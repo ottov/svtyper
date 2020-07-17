@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 
 import sys, time, datetime, os, contextlib, tempfile, shutil, json, re
 from functools import wraps
@@ -28,11 +28,15 @@ def write_sample_json(sample_list, lib_info_file):
         s = {}
         s['sample_name'] = sample.name
         s['bam'] = sample.bam.filename
+
+        if isinstance(s['bam'], bytes):
+            s['bam'] = str(s['bam'],'UTF-8')
+
         s['libraryArray'] = []
         s['mapped'] = sample.bam.mapped
         s['unmapped'] = sample.bam.unmapped
 
-        for lib in sample.lib_dict.values():
+        for lib in list(sample.lib_dict.values()):
             l = {}
             l['library_name'] = lib.name
             l['readgroups'] = lib.readgroups

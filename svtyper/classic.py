@@ -122,15 +122,15 @@ def sv_genotype(bam_string,
     # parse the comma separated inputs
     bam_list = []
     for b in bam_string.split(','):
-        if b.endswith('.bam'):
+        if b.encode('UTF-8').endswith('.bam'.encode('ascii')):
             bam_list.append(pysam.AlignmentFile(b, mode='rb'))
-        elif b.endswith('.cram'):
+        elif b.encode('UTF-8').endswith('.cram'.encode('ascii')):
             bam_list.append(pysam.AlignmentFile(b,
-                mode='rc',reference_filename=ref_fasta,format_options=["required_fields=7167"]))
+                mode='rc',reference_filename=ref_fasta,format_options=[b"required_fields=7167"]))
         else:
             sys.stderr.write('Error: %s is not a valid alignment file (*.bam or *.cram)\n' % b)
             exit(1)
-            
+
     min_lib_prevalence = 1e-3 # only consider libraries that constitute at least this fraction of the BAM
 
     # parse lib_info_path JSON
@@ -144,7 +144,7 @@ def sv_genotype(bam_string,
 
     # build the sample libraries, either from the lib_info JSON or empirically from the BAMs
     sample_list = list()
-    for i in xrange(len(bam_list)):
+    for i in range(len(bam_list)):
         if lib_info is None:
             logging.info('Calculating library metrics from %s...' % bam_list[i].filename)
             sample = Sample.from_bam(bam_list[i], num_samp, min_lib_prevalence)
@@ -413,12 +413,12 @@ def sv_genotype(bam_string,
                         out_bam_written_reads = write_alignment(read, out_bam, out_bam_written_reads)
 
             if debug:
-                print '--------------------------'
-                print 'ref_span:', ref_span
-                print 'alt_span:', alt_span
-                print 'ref_seq:', ref_seq
-                print 'alt_seq:', alt_seq
-                print 'alt_clip:', alt_clip
+                print('--------------------------')
+                print('ref_span:', ref_span)
+                print('alt_span:', alt_span)
+                print('ref_seq:', ref_seq)
+                print('alt_seq:', alt_seq)
+                print('alt_clip:', alt_clip)
 
             # in the absence of evidence for a particular type, ignore the reference
             # support for that type as well
@@ -443,12 +443,12 @@ def sv_genotype(bam_string,
                 QR = int(split_weight * ref_seq) + int(disc_weight * ref_span)
                 QA = int(split_weight * alt_splitters) + int(disc_weight * alt_span)
                 gt_lplist = bayes_gt(QR, QA, is_dup)
-                best, second_best = sorted([ (i, e) for i, e in enumerate(gt_lplist) ], key=lambda(x): x[1], reverse=True)[0:2]
+                best, second_best = sorted([ (i, e) for i, e in enumerate(gt_lplist) ], key=lambda x: x[1], reverse=True)[0:2]
                 gt_idx = best[0]
 
                 # print log probabilities of homref, het, homalt
                 if debug:
-                    print gt_lplist
+                    print(gt_lplist)
 
                 # set the overall variant QUAL score and sample specific fields
                 var.genotype(sample.name).set_format('GL', ','.join(['%.0f' % x for x in gt_lplist]))
@@ -573,7 +573,7 @@ def main():
 def cli():
     try:
         sys.exit(main())
-    except IOError, e:
+    except IOError as e:
         if e.errno != 32:  # ignore SIGPIPE
             raise
 

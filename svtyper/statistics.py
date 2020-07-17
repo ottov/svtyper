@@ -12,7 +12,7 @@ def log_choose(n, k):
     if k * 2 > n:
         k = n - k
 
-    for  d in xrange(1,k+1):
+    for  d in range(1,k+1):
         r += math.log(n, 10)
         r -= math.log(d, 10)
         n -= 1
